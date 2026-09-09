@@ -16,9 +16,8 @@ from typing import Optional
 from esg_utils import call_llm, GRI_STANDARDS, get_collection, get_embedding_fn
 from citation import (
     AnalysisItem, Citation, is_in_scope, make_citation, make_unattributed,
-    select_sources, truncate,
+    score_against_sections, select_sources, truncate,
 )
-
 # ── 資料結構 ──────────────────────────────────────────────────────
 @dataclass
 class KPIItem:
@@ -165,6 +164,11 @@ def extract_kpis(text: str, pillar: str,
 # ── LLM 分析（每個面向各一次）────────────────────────────────────
 _PILLAR_NAMES = {"E": "環境（Environmental）", "S": "社會（Social）", "G": "治理（Governance）"}
 _GRI_MAP = {"E": "GRI 302/303/305/306", "S": "GRI 401/403/404/413", "G": "GRI 205/206/418"}
+_PILLAR_QUERY = {
+    "E": "溫室氣體排放 碳排放 能源使用 水資源 廢棄物 再生能源 氣候風險 TCFD",
+    "S": "員工訓練 職業安全衛生 多元共融 人權 供應鏈 社區參與 客戶權益",
+    "G": "董事會 獨立董事 誠信治理 風險管理 反腐敗 股東權益 稽核",
+}
 
 def analyze_pillar(pillar: str, sections: list,
                    company: str, report_year: str = "",
@@ -180,6 +184,11 @@ def analyze_pillar(pillar: str, sections: list,
     sections = [s for s in sections
                 if is_in_scope(s, company, report_year)
                 and getattr(s, "doc_type", "report") == "report"]
+    if len(sections) > 40:
+        query = _PILLAR_QUERY.get(pillar, "")
+        scored = score_against_sections(query, sections)
+        sections = [s for s, _ in scored[:40]]
+
     text_blob = "\n\n".join(_sec_text(s) for s in sections)
 
     if not text_blob.strip():
@@ -342,7 +351,7 @@ def run_interpretation_agent(
             pillar_secs = [_meta_section(d, m, sid)
                            for d, m, sid in zip(docs, metas, ids)]
 
-        analysis = analyze_pillar(pillar, pillar_secs[:15], company,
+        analysis = analyze_pillar(pillar, pillar_secs, company,
                                   report_year, model)
         setattr(result, pillar, analysis)
 
