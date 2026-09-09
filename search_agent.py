@@ -20,7 +20,7 @@ from dataclasses import dataclass, asdict
 from typing import Optional
 
 from esg_utils import (
-    REPORTS_DIR, PROCESSED_DIR, clean_text, classify_pillar,
+    REPORTS_DIR, PROCESSED_DIR, KB_DIR, clean_text, classify_pillar,
     get_collection, get_embedding_fn, EmbeddingFn,
 )
 
@@ -45,9 +45,10 @@ class ESGSection:
 
 # ── Hash 管理（冪等更新）─────────────────────────────────────────
 def load_hashes() -> dict:
-    return json.loads(HASH_FILE.read_text()) if HASH_FILE.exists() else {}
+    return json.loads(HASH_FILE.read_text(encoding="utf-8")) if HASH_FILE.exists() else {}
 
-def save_hashes(h: dict): HASH_FILE.write_text(json.dumps(h, indent=2))
+def save_hashes(h: dict):
+    HASH_FILE.write_text(json.dumps(h, indent=2, ensure_ascii=False), encoding="utf-8")
 
 def file_hash(path: Path) -> str:
     return hashlib.sha256(path.read_bytes()).hexdigest()
@@ -235,8 +236,8 @@ def process_file(path: Path, ef: EmbeddingFn, collection,
     # 儲存 processed JSON
     out = PROCESSED_DIR / (path.stem + ".json")
     out.write_text(json.dumps(
-        [asdict(s) for s in sections], ensure_ascii=False, indent=2
-    ))
+      [asdict(s) for s in sections], ensure_ascii=False, indent=2
+    ), encoding="utf-8") 
 
     hashes[rel] = h
     save_hashes(hashes)
