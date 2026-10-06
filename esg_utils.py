@@ -104,8 +104,12 @@ class EmbeddingFn:
     def __call__(self, input: list[str]) -> list[list[float]]:
         return self._model.encode(input, show_progress_bar=False,
                                   convert_to_numpy=True).tolist()
-    def embed_query(self, text: str) -> list[float]:
-        return self._model.encode([text], show_progress_bar=False,
+    def embed_query(self, text: str = None, input=None) -> list:
+        query = input if input is not None else text
+        if isinstance(query, list):
+            return self._model.encode(query, show_progress_bar=False,
+                                      convert_to_numpy=True).tolist()
+        return self._model.encode([query], show_progress_bar=False,
                                   convert_to_numpy=True)[0].tolist()
     def name(self) -> str: return f"st-{self.model_name}"
     def get_config(self) -> dict: return {"model_name": self.model_name}
