@@ -9,7 +9,7 @@ coordinator_agent.py — 任務協調與品質控管代理（Coordinator Agent�
 用法：
   python coordinator_agent.py --file "2024年永續報告書_中_中信證券000616.pdf"
   python coordinator_agent.py --file xxx.pdf --rebuild   # 重建索引
-  python coordinator_agent.py --file xxx.pdf --model ollama/gemma3:4b
+  python coordinator_agent.py --file xxx.pdf --model ollama/gemma4-plan:latest
 """
 from __future__ import annotations
 import argparse, json, sys, time
@@ -198,8 +198,10 @@ def node_report(state: ESGState) -> dict:
             lines += ["", "**關鍵績效指標 KPIs**"]
             for k in kpis[:5]:
                 if isinstance(k, dict):
-                    name, value, unit = (k.get('name', ''), k.get('value', ''),
-                                         k.get('unit', ''))
+                    name, value, unit = (
+                        k.get('name') or '',
+                        k.get('value') or '',
+                        k.get('unit') or '',)
                     lines.append(f"- {name}: {value} {unit}"
                                  + citations_to_markdown(k.get('sources', [])))
         lines.append("")
@@ -292,7 +294,7 @@ if __name__ == "__main__":
     ap = argparse.ArgumentParser(description="ESG 多代理分析系統（LangGraph）")
     ap.add_argument("--file",    required=True, help="data/reports/ 中的 PDF 檔名")
     ap.add_argument("--company", default=None,  help="公司名稱（預設從檔名推斷）")
-    ap.add_argument("--model",   default="ollama/gemma3:4b", help="LiteLLM 模型名稱")
+    ap.add_argument("--model",   default="ollama/gemma4-plan:latest", help="LiteLLM 模型名稱")
     ap.add_argument("--rebuild", action="store_true", help="重建 ChromaDB 索引")
     args = ap.parse_args()
 
