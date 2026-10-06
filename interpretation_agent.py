@@ -244,7 +244,8 @@ def analyze_pillar(pillar: str, sections: list,
     highlights = [AnalysisItem(t, select_sources(t, sections, company, report_year))
                   for t in highlights_raw]
     weaknesses = [AnalysisItem(t, select_sources(t, sections, company, report_year))
-                  for t in weaknesses_raw]
+                  for t in weaknesses_raw
+                  if not t.startswith("（分析結果未包含")]
 
     # LLM 提供的 KPI：以相似度歸因
     kpis = []
@@ -252,8 +253,8 @@ def analyze_pillar(pillar: str, sections: list,
         if "：" in kline or ":" in kline:
             parts = re.split(r"[：:]", kline, maxsplit=1)
             kpis.append(KPIItem(
-                name=parts[0].strip(), value=parts[1].strip(), pillar=pillar,
-                citations=select_sources(kline, sections, company, report_year)))
+            name=parts[0].strip(), value=parts[1].strip(), unit="", pillar=pillar,
+            citations=select_sources(kline, sections, company, report_year)))
 
     # 規則式補充 KPI：精確溯源
     kpis += extract_kpis(text_blob, pillar, sections=sections)
