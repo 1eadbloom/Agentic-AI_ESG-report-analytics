@@ -73,9 +73,12 @@ def classify_pillar(text: str) -> str:
 
 # ── LLM 呼叫（LiteLLM，支援 Ollama）────────────────────────────────
 def call_llm(prompt: str, system: str = "你是一位專業的 ESG 永續顧問。",
-             model: str | None = None, max_tokens: int = 2048) -> str:
+             model: str | None = None, max_tokens: int = 4096) -> str:
     load_dotenv(PROJECT_ROOT / ".env")
     from litellm import completion
+    import litellm
+    if os.environ.get("LANGFUSE_PUBLIC_KEY"):
+        litellm.callbacks = ["langfuse_otel"]
     m = model or os.environ.get("ESG_MODEL", "ollama/gemma3:4b")
     api_key  = os.environ.get("LITELLM_API_KEY")
     base_url = os.environ.get("LITELLM_BASE_URL")
@@ -91,6 +94,14 @@ def call_llm(prompt: str, system: str = "你是一位專業的 ESG 永續顧問�
     if m.startswith("ollama/") and not base_url:
         base_url = "http://localhost:11434"
     if base_url: kwargs["api_base"] = base_url
+    # 關閉思考模式：直接測試顯示 think=False 約 226 token／5 秒，思考開啟則 3270 token／100 秒，
+    # 且思考會吃光 max_tokens 導致 content 為空。在 .env 設 ESG_THINK=1 可恢復思考。
+    # 取樣溫度：分析類任務建議調低（例如 0.2），可減少亂碼字元與 KPI 區塊忽有忽無的不穩定。
+    # 不設定時維持原行為（使用模型預設值）。
+    if os.environ.get("ESG_TEMPERATURE"):
+        kwargs["temperature"] = float(os.environ["ESG_TEMPERATURE"])
+    if m.startswith("ollama") and os.environ.get("ESG_THINK", "0") != "1":
+        kwargs["extra_body"] = {"think": False}
     resp = completion(**kwargs)
     return resp["choices"][0]["message"]["content"].strip()
 

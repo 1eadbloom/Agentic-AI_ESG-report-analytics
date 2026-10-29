@@ -1,4 +1,6 @@
 """pytest 共用工具：離線可跑的假 embedding 與 section 工廠。"""
+import os
+os.environ["LANGFUSE_PUBLIC_KEY"] = ""   # 測試一律關閉 tracing，避免連網
 import math
 import zlib
 from types import SimpleNamespace
