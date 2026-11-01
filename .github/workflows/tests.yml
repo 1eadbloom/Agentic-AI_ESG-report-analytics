@@ -1,0 +1,23 @@
+# 放在 .github/workflows/tests.yml
+# 離線測試：不需要 PDF、Ollama、ChromaDB、Langfuse 或網路上的模型。
+# （我在乾淨的虛擬環境、只安裝下面三個套件的情況下跑過，118 項全過）
+name: tests
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  pytest:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - name: Install test dependencies
+        run: pip install pytest python-dotenv langgraph
+      - name: Run tests
+        env:
+          LANGFUSE_PUBLIC_KEY: ""
+        run: pytest -q
